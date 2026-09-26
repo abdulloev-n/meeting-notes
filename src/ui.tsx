@@ -1,0 +1,14 @@
+import { t } from './i18n';
+import { useEffect, useRef, useState } from 'react';
+import { Check, ChevronDown, MoreHorizontal, Pencil, Trash2, FolderOpen } from 'lucide-react';
+import { formatDate, formatDuration, titleOf, type Meeting } from './types';
+export function Select({ value, options, onChange }: { value: string; options: { value: string; label: string }[]; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false); const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { const close = (event: MouseEvent) => { if (!ref.current?.contains(event.target as Node)) setOpen(false); }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, []);
+  return <div className={`select ${open ? 'open' : ''}`} ref={ref}><button className="select-trigger" onClick={() => setOpen(!open)} aria-expanded={open}><span>{options.find(o => o.value === value)?.label || value}</span><ChevronDown size={16}/></button>{open && <div className="options">{options.map(option => <button key={option.value} onClick={() => { onChange(option.value); setOpen(false); }}>{option.label}{option.value === value && <Check size={15}/>}</button>)}</div>}</div>;
+}
+export function MeetingRow({ meeting, compact, onOpen, onRename, onDelete, onAudio }: { meeting: Meeting; compact?: boolean; onOpen: () => void; onRename: () => void; onDelete: () => void; onAudio: () => void }) {
+  const [menu, setMenu] = useState(false); const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => { const close = (event: MouseEvent) => { if (!ref.current?.contains(event.target as Node)) setMenu(false); }; document.addEventListener('mousedown', close); return () => document.removeEventListener('mousedown', close); }, []);
+  return <div className="meeting-row"><button className="meeting-main" onClick={onOpen}><strong>{titleOf(meeting)}</strong><span>{formatDate(meeting.startedAt, { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })} · {formatDuration(meeting.durationSeconds)}</span></button>{compact ? <span className="duration">{formatDuration(meeting.durationSeconds)}</span> : <span className="preview">{meeting.summary || meeting.status.replaceAll('_',' ').toLowerCase()}</span>}<div className="menu-wrap" ref={ref}><button className="icon-button" title={t('Meeting actions')} onClick={() => setMenu(!menu)}><MoreHorizontal size={19}/></button>{menu && <div className="context-menu"><button onClick={() => { setMenu(false); onOpen(); }}><FolderOpen size={15}/>{t('Open')}</button><button onClick={() => { setMenu(false); onRename(); }}><Pencil size={15}/>{t('Rename')}</button><button onClick={() => { setMenu(false); onAudio(); }}><FolderOpen size={15}/>{t('Open recording')}</button><hr/><button className="danger-text" onClick={() => { setMenu(false); onDelete(); }}><Trash2 size={15}/>{t('Delete')}</button></div>}</div></div>;
+}
