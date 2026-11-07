@@ -17,6 +17,7 @@ export const api = {
   ask: (id:string,question:string) => invoke<AskResponse>('ask_meeting',{id,question}),
   translate: (id:string,language:string) => invoke<string>('translate_meeting',{id,language}),
   recordingBytes: (id:string) => invoke<ArrayBuffer>('recording_bytes',{id}),
+  saveExport: (name:string,extension:'md'|'docx',bytes:number[]) => invoke<string|null>('save_export',{name,extension,bytes}),
   rename: (id: string, title: string) => invoke<void>('rename_meeting', { id, title }),
   remove: (id: string) => invoke<void>('delete_meeting', { id }),
   toggleAction: (id: string, completed: boolean) => invoke<void>('toggle_action', { id, completed }),
