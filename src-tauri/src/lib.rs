@@ -134,8 +134,8 @@ async fn process_meeting(app: tauri::AppHandle,id: String) {
                 Err(error) => {let _=set_status(&app,&id,"TRANSCRIPTION_FAILED",Some(format!("Audio conversion failed: {error}. The original WAV file remains on disk.")));return;} }
         }
         if let Err(e)=set_status(&app,&id,"TRANSCRIBING",None) { log::error!("Save status: {e}"); return; }
-        match provider.transcribe(std::path::Path::new(&m.audio_path),&state.ffmpeg_path,&m.transcription_model).await {
-            Ok(transcript) => { m.transcript=Some(transcript); m.status="TRANSCRIBED".into(); m.error=None; if let Err(e)=storage::save(&state.db_path,&m) { log::error!("Save transcript: {e}"); return; } updated(&app); },
+        match provider.transcribe_with_segments(std::path::Path::new(&m.audio_path),&state.ffmpeg_path,&m.transcription_model).await {
+            Ok((transcript,segments)) => { m.transcript=Some(transcript); let _=extras::save_segments(&state.db_path,&id,&segments); m.status="TRANSCRIBED".into(); m.error=None; if let Err(e)=storage::save(&state.db_path,&m) { log::error!("Save transcript: {e}"); return; } updated(&app); },
             Err(error) => { log::error!("Transcription failed: {error}"); let _=set_status(&app,&id,"TRANSCRIPTION_FAILED",Some(error)); return; }
         }
     }
@@ -219,7 +219,8 @@ pub fn run(){
             std::fs::create_dir_all(&default_recordings)?;
             let ffmpeg=app.path().resource_dir()?.join("bin").join("ffmpeg.exe");
             let ffmpeg_path=if ffmpeg.exists(){ffmpeg}else{PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bin").join("ffmpeg.exe")};
-            let settings=storage::load_settings(&db_path).map_err(std::io::Error::other)?;
+            let mut settings=storage::load_settings(&db_path).map_err(std::io::Error::other)?;
+            if settings.transcription_model=="gpt-4o-mini-transcribe" {settings.transcription_model="gpt-4o-transcribe-diarize".into();storage::save_settings(&db_path,&settings).map_err(std::io::Error::other)?;}
             for mut m in storage::list(&db_path).map_err(std::io::Error::other)? { if ["TRANSCRIBING","TRANSCRIBED","SUMMARIZING"].contains(&m.status.as_str()){
                 m.status=if m.transcript.is_some(){"SUMMARY_FAILED"}else{"TRANSCRIPTION_FAILED"}.into();m.error=Some("Processing was interrupted. Retry to continue.".into());storage::save(&db_path,&m).map_err(std::io::Error::other)?; } }
             app.manage(AppState{db_path,default_recordings,ffmpeg_path,recording:Mutex::new(None),starting:AtomicBool::new(false)});
