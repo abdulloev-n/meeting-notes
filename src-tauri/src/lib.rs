@@ -244,6 +244,6 @@ pub fn run(){
         .invoke_handler(tauri::generate_handler![get_snapshot,start_recording,stop_recording,import_media,import_media_path,rename_meeting,toggle_action,delete_meeting,search_meetings,save_settings,save_api_key,retry_processing,choose_storage,open_storage,open_audio,
            extras::get_extras,extras::create_collection,extras::rename_collection,extras::merge_collection,
            extras::delete_collection,extras::assign_collection,extras::toggle_bookmark,extras::rename_speaker,
-           extras::analyze_meeting,extras::ask_meeting,extras::translate_meeting,extras::recording_bytes])
+           extras::analyze_meeting,extras::ask_meeting,extras::translate_meeting,extras::recording_bytes,extras::save_export])
         .run(tauri::generate_context!()).expect("Meeting Notes could not start");
 }
