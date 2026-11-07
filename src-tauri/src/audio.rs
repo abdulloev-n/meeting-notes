@@ -30,10 +30,18 @@ pub fn microphones() -> Vec<Device> { enumerate(Direction::Capture).unwrap_or_de
 pub fn outputs() -> Vec<Device> { enumerate(Direction::Render).unwrap_or_default() }
 
 pub fn device_available(direction: Direction, selected_id: &str) -> bool {
-    if wasapi::initialize_mta().ok().is_err() { return false; }
-    let Ok(enumerator) = DeviceEnumerator::new() else { return false; };
-    let result = if selected_id.is_empty() { enumerator.get_default_device(&direction) } else { enumerator.get_device(selected_id) };
-    result.and_then(|device| device.get_iaudioclient()).is_ok()
+    // Probe COM/WASAPI in a fresh MTA apartment, independently of recording state.
+    // Reusing a UI/IPC thread can fail with RPC_E_CHANGED_MODE and falsely display red.
+    let device_id=selected_id.to_string();
+    thread::spawn(move || {
+        if wasapi::initialize_mta().ok().is_err() { return false; }
+        let Ok(enumerator)=DeviceEnumerator::new() else {return false};
+        let device=if device_id.is_empty(){enumerator.get_default_device(&direction)}else{enumerator.get_device(&device_id)};
+        let Ok(device)=device else{return false};
+        let Ok(mut client)=device.get_iaudioclient() else{return false};
+        let Ok(format)=client.get_mixformat() else{return false};
+        client.initialize_client(&format,&Direction::Capture,&StreamMode::PollingShared{autoconvert:false,buffer_duration_hns:2_000_000}).is_ok()
+    }).join().unwrap_or(false)
 }
 
 fn capture(direction: Direction, device_id: String, path: PathBuf, stop: Arc<AtomicBool>, ready: mpsc::Sender<Result<(), String>>) -> Result<(), String> {
