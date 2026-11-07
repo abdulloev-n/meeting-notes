@@ -59,7 +59,7 @@ impl Default for Settings {
         Self {
             theme: "system".into(), language: "en".into(), launch_at_login: false,
             minimize_to_tray: true, microphone_id: String::new(), system_audio_id: String::new(),
-            recording_path: String::new(), transcription_model: "gpt-4o-mini-transcribe".into(),
+            recording_path: String::new(), transcription_model: "gpt-4o-transcribe-diarize".into(),
             summary_model: "gpt-4o-mini".into(), summary_language: "Russian".into(),
             shortcut: "Ctrl+Shift+R".into(),
         }
