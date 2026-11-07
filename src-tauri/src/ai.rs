@@ -30,6 +30,53 @@ impl OpenAIProvider {
     }
 }
 
+
+impl OpenAIProvider {
+    /// Speaker timestamps are returned only by the diarization endpoint. Older transcription
+    /// models keep their original faithful transcript, with no fabricated speaker data.
+    pub async fn transcribe_with_segments(&self,audio:&Path,ffmpeg:&Path,model:&str)->Result<(String,Value),String>{
+        if model!="gpt-4o-transcribe-diarize" {
+            return self.transcribe(audio,ffmpeg,model).await.map(|text|(text,json!([])));
+        }
+        let dir=audio.parent().ok_or("Recording folder missing")?.join("transcription_chunks");
+        std::fs::create_dir_all(&dir).map_err(|e|e.to_string())?;
+        // The output directory is owned by this recording; clear stale chunks on retry.
+        if let Ok(entries)=std::fs::read_dir(&dir){for entry in entries.flatten(){if entry.file_name().to_string_lossy().starts_with("part_"){let _=std::fs::remove_file(entry.path());}}}
+        let pattern=dir.join("part_%03d.m4a");
+        let output=Command::new(ffmpeg).args(["-nostdin","-y","-loglevel","error","-i"]).arg(audio)
+            .args(["-map","0:a:0","-c","copy","-f","segment","-segment_time","900","-reset_timestamps","1"])
+            .arg(pattern).output().map_err(|e|e.to_string())?;
+        if !output.status.success(){return Err(format!("Audio segmentation failed: {}",String::from_utf8_lossy(&output.stderr)))}
+        let mut chunks=std::fs::read_dir(dir).map_err(|e|e.to_string())?.filter_map(Result::ok)
+            .map(|e|e.path()).filter(|p|p.extension().and_then(|s|s.to_str())==Some("m4a")).collect::<Vec<_>>();
+        chunks.sort();if chunks.is_empty(){return Err("No audio chunks created".into())}
+        let mut transcript=Vec::new();let mut all=Vec::<Value>::new();
+        for (chunk_index,chunk) in chunks.iter().enumerate(){
+            let bytes=tokio::fs::read(chunk).await.map_err(|e|e.to_string())?;
+            let name=chunk.file_name().and_then(|s|s.to_str()).unwrap_or("audio.m4a").to_string();
+            let part=multipart::Part::bytes(bytes).file_name(name).mime_str("audio/mp4").map_err(|e|e.to_string())?;
+            let form=multipart::Form::new().text("model","gpt-4o-transcribe-diarize")
+                .text("response_format","diarized_json").text("chunking_strategy","auto").part("file",part);
+            let response=self.client.post(format!("{BASE}/audio/transcriptions")).bearer_auth(&self.key)
+                .multipart(form).send().await.map_err(|e|e.to_string())?;
+            let status=response.status();let data:Value=response.json().await.map_err(|e|e.to_string())?;
+            if !status.is_success(){return Err(format!("Diarization failed (HTTP {}): {}",status.as_u16(),api_error(&data)))}
+            if let Some(segs)=data.get("segments").and_then(Value::as_array){
+                for seg in segs{
+                    let raw=seg.get("text").and_then(Value::as_str).unwrap_or("").trim();
+                    if raw.is_empty(){continue}
+                    let start=seg.get("start").and_then(Value::as_f64).unwrap_or(0.0)+(chunk_index as f64*900.0);
+                    let end=seg.get("end").and_then(Value::as_f64).unwrap_or(0.0)+(chunk_index as f64*900.0);
+                    let speaker=seg.get("speaker").and_then(Value::as_str).unwrap_or("Speaker").to_string();
+                    all.push(json!({"start":start,"end":end,"speaker":speaker,"text":raw}));
+                    transcript.push(raw.to_string());
+                }
+            }else if let Some(text)=data.get("text").and_then(Value::as_str){transcript.push(text.to_string());}
+        }
+        Ok((transcript.join("\n\n"),json!(all)))
+    }
+}
+
 impl AIProvider for OpenAIProvider {
     async fn transcribe(&self, audio: &Path, ffmpeg: &Path, model: &str) -> Result<String, String> {
         let chunks_dir = audio.parent().ok_or("Recording folder missing")?.join("transcription_chunks");
