@@ -169,6 +169,90 @@
 :root[data-theme="Light"] .btn.primary{background:#222226;color:#fff}
 @media(max-width:940px){.settings-layout{grid-template-columns:1fr}.page.tight{padding:24px 25px 65px}}
 
+
+/* Meeting Notes concept v0.6: visual review refinements */
+.brand{padding:22px 13px 24px}
+.brand-header{display:flex;align-items:center;justify-content:space-between;gap:5px;min-width:0}
+.brand-title{display:flex;align-items:center;gap:10px;min-width:0;flex:1}
+.brand-copy{min-width:0;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.brand-name{font-size:15.5px;font-weight:680;letter-spacing:-.35px;line-height:1.2;white-space:nowrap}
+.brand .brand-sub{font-size:11.5px;font-weight:450;color:var(--muted);margin:0;line-height:1.3;white-space:nowrap}
+.brand .brand-mark{width:29px;height:29px;flex:none}
+.brand .brand-mark svg{width:29px;height:29px}
+.brand .sidebar-toggle{flex:none;margin:0;width:29px;height:31px;min-width:29px;padding:0;display:grid;place-items:center;background:var(--surface);border:1px solid var(--line);color:var(--muted);border-radius:7px}
+.brand .sidebar-toggle:hover{color:var(--text);background:var(--surface3)}
+.app.is-collapsed .brand{padding:20px 8px 12px}
+.app.is-collapsed .brand-header{flex-direction:column;gap:14px}
+.app.is-collapsed .brand-title{flex:none;justify-content:center}
+.app.is-collapsed .brand .sidebar-toggle{margin:0}
+:root[data-theme="Light"] .brand .sidebar-toggle{color:var(--muted);background:var(--surface);border-color:var(--line2)}
+:root[data-theme="Light"] .brand .sidebar-toggle:hover{color:var(--text);background:var(--surface3)}
+/* Slightly larger type scale, without losing desktop information density */
+body{font-size:15px}
+.page-sub{font-size:15px}
+.eyebrow{font-size:12px}
+.nav-btn{font-size:14.5px}
+.collection-link{font-size:13.5px}
+.side-project{font-size:12px}
+.crumb{font-size:13px}
+.btn{font-size:13.5px}
+.meta,.detail-metadata{font-size:13px}
+.tab{font-size:14.5px}
+.select-trigger,.select-option{font-size:14px}
+.setting-row span{font-size:14px}
+.setting-row small{font-size:12px}
+.speech-text{font-size:15.5px;line-height:1.85}
+.speech .speaker-name{font-size:13.5px}
+.speaker-legend .speaker-pill{font-size:13.5px}
+.task-label{font-size:14.5px}
+.task-note{font-size:12px}
+.analysis-meta p{font-size:13.5px}
+.analysis-caption{font-size:12px}
+.modal h2{font-size:21px}
+.modal p{font-size:14px}
+.modal label{font-size:13px}
+.collection-manage-row .label strong{font-size:15px}
+.collection-manage-row .count{font-size:12px}
+.collection-manager button{font-size:13px}
+.toast{font-size:14px;line-height:1.5}
+:root[data-theme="Light"] .toast{color:#202026;background:#fff;border-color:#d4d5dc;box-shadow:0 10px 28px rgba(24,27,38,.16)}
+:root[data-theme="Light"] .modal{background:#fff;border-color:var(--line2);color:var(--text);box-shadow:0 18px 60px #19192324}
+:root[data-theme="Light"] .modal p,:root[data-theme="Light"] .modal label{color:var(--muted)}
+:root[data-theme="Light"] .modal-backdrop{background:#11182766}
+/* Original card-like meeting overview, left aligned and full width */
+.page.tight .overview-grid.overview-vertical{display:block;max-width:none;margin:0;width:100%}
+.page.tight .overview-vertical .section-block{background:var(--surface);border:1px solid var(--line2);border-radius:11px;padding:25px 28px;margin:0 0 16px;width:100%;box-shadow:none}
+.page.tight .overview-vertical .section-block h3{font-size:18px;font-weight:650;letter-spacing:-.25px;margin:0 0 15px}
+.page.tight .overview-vertical .section-block p,
+.page.tight .overview-vertical .section-block li{font-size:15.5px;line-height:1.73;max-width:none;color:var(--text)}
+.page.tight .overview-vertical .section-block ul{padding-left:24px}
+.page.tight .overview-vertical .section-block li+li{margin-top:9px}
+.page.tight .overview-vertical .task{padding:14px 0;border-color:var(--line)}
+.page.tight .overview-vertical .task:last-child{padding-bottom:4px}
+.page.tight .overview-vertical .task-label{font-size:15px;line-height:1.55}
+.page.tight .overview-toolbar{margin-bottom:20px}
+.page.tight .analysis-meta{margin:0 0 22px;padding-bottom:18px}
+:root[data-theme="Light"] .page.tight .overview-vertical .section-block{background:#fff;border-color:#dadce3}
+:root[data-theme="Light"] .page.tight .overview-vertical .section-block p,
+:root[data-theme="Light"] .page.tight .overview-vertical .section-block li{color:#25252b}
+/* Collection manager: room to scan labels and edit safely */
+.modal:has(.collection-manager){width:min(840px,calc(100vw - 44px));max-width:840px;height:min(710px,calc(100vh - 52px));max-height:calc(100vh - 52px);padding:28px 32px 24px;display:flex;flex-direction:column;min-height:0}
+.modal:has(.collection-manager) > h2,.modal:has(.collection-manager) > p{flex:none}
+.modal:has(.collection-manager) > p{margin-bottom:10px}
+.modal:has(.collection-manager) .collection-manager{max-height:none;min-height:0;flex:1;overflow-y:auto;overflow-x:hidden;padding-right:12px;margin:8px 0 0;scrollbar-color:var(--line2) transparent;scrollbar-width:thin;align-content:start;display:block}
+.modal:has(.collection-manager) .collection-manage-row{min-height:72px;gap:18px}
+.modal:has(.collection-manager) .collection-manage-row .label{min-width:0;flex:1;flex-wrap:wrap;row-gap:3px}
+.modal:has(.collection-manager) .collection-manage-row .count{white-space:nowrap}
+.modal:has(.collection-manager) .collection-actions{flex:none}
+.modal:has(.collection-manager) .modal-actions{padding-top:15px;margin-top:8px;border-top:1px solid var(--line);flex:none}
+@media(max-width:650px){
+ .modal:has(.collection-manager){padding:20px;width:calc(100vw - 24px)}
+ .modal:has(.collection-manager) .collection-manage-row{align-items:flex-start;flex-direction:column;padding:15px 0;gap:10px}
+ .modal:has(.collection-manager) .collection-actions{flex-wrap:wrap}
+ .page.tight .overview-vertical .section-block{padding:20px}
+ .brand .brand-sub{display:none}
+}
+
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='7' fill='%2332304D'/%3E%3Cpath d='M6 11v2M9 8v8M12 5v14M15 9v6M18 11v2' stroke='%23DBD6FF' stroke-width='1.9' stroke-linecap='round'/%3E%3C/svg%3E" />
 </head>
@@ -262,8 +346,8 @@ function setPage(page){state.page=page;state.modal=null;state.menuMeeting=null;s
 function openMeeting(id,tab='overview',from=state.page,time=null){state.meetingId=id;state.analysisMode=getDetectedMode(meetings.find(m=>m.id===id)||meetings[0]);state.backPage=from;state.backCollection=state.collection;state.page='details';state.tab=tab;state.translated=false;state.transcriptSearch='';state.bookmarksOnly=false;state.chatHistory=[];state.time=Math.max(0,time??0);state.playing=false;audio.pause();const u=importedUrls.get(id);audio.src=u||'';render();}
 function back(){setPage(state.backPage==='details'?'meetings':state.backPage);}
 function navLinks(){const items=[['home','Home'],['meetings','Meetings'],['search','Search'],['calendar','Calendar'],['settings','Settings']];return items.map(([id,label])=>`<button class="nav-btn ${state.page===id?'active':state.page==='details'&&id===state.backPage?'active':''}" data-action="nav" data-page="${id}" title="${id==='search'?'Search (Ctrl K)':label}" aria-label="${label}">${icon(id)}<span>${label}</span></button>`).join('');}
-function sidebar(){const visible=state.showAllCollections?collections:collections.slice(0,4);return `<aside class="sidebar" aria-label="Navigation"><div class="brand"><div class="brand-title"><div class="brand-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#32304D"/><path d="M6 11v2M9 8v8M12 5v14M15 9v6M18 11v2" stroke="#DBD6FF" stroke-width="1.9" stroke-linecap="round"/></svg></div><span class="brand-copy">Meeting Notes</span></div><p class="brand-sub">Record it. Find it later.</p></div><nav class="nav">${navLinks()}</nav><div class="sidebar-bottom"><div class="separator"></div><div class="side-project">Collections</div>${visible.map(c=>`<button class="collection-link" data-action="open-collection" data-collection="${esc(c)}"><span class="collection-dot" style="--collection-color:${collectionColor(c)}"></span>${esc(c)}<small>${meetings.filter(m=>m.collection===c).length}</small></button>`).join('')}${collections.length>4?`<button class="collection-link show-all" data-action="toggle-collections">${state.showAllCollections?'Show less':'Show all'} (${collections.length})</button>`:''}<button class="collection-link" data-action="new-collection">${icon('plus',14)}<span>New collection</span></button><button class="collection-link" data-action="manage-collections">${icon('settings',14)}<span>Manage collections</span></button><div class="version">INTERACTIVE CONCEPT · v0.5</div></div></aside>`;}
-function topbar(){let label=state.page==='details'?'Meetings':state.page[0].toUpperCase()+state.page.slice(1);return `<header class="topbar"><button class="top-icon sidebar-toggle" data-action="toggle-sidebar" aria-label="${state.sidebarCollapsed?'Expand sidebar':'Collapse sidebar'}" title="${state.sidebarCollapsed?'Expand sidebar':'Collapse sidebar'}">${icon('panel',17)}</button><div class="crumb">Workspace <span class="dim">/</span> <strong>${label}</strong>${state.page==='details'?`<span class="dim">/</span><span>${esc(current().title)}</span>`:''}</div><div class="topbar-actions">${state.recording?`<span class="recording-chip"><span class="pulse"></span>Demo recording <span id="record-timer-top">${clock(state.recordSeconds)}</span><button data-action="stop-record">Stop</button></span>`:''}<span class="demo-pill"><span class="dot"></span>Interactive prototype</span><span class="kbd">${esc(settings.hotkeys.search.replace(/\+/g," "))}</span><button class="top-icon" data-action="help" title="About this demo">${icon('info',15)}</button></div></header>`;}
+function sidebar(){const visible=state.showAllCollections?collections:collections.slice(0,4);return `<aside class="sidebar" aria-label="Navigation"><div class="brand"><div class="brand-header"><div class="brand-title"><div class="brand-mark"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect width="24" height="24" rx="7" fill="#32304D"/><path d="M6 11v2M9 8v8M12 5v14M15 9v6M18 11v2" stroke="#DBD6FF" stroke-width="1.9" stroke-linecap="round"/></svg></div><div class="brand-copy"><span class="brand-name">Meeting Notes</span><span class="brand-sub">Record it. Find it later.</span></div></div><button class="top-icon sidebar-toggle" data-action="toggle-sidebar" aria-label="${state.sidebarCollapsed?'Expand sidebar':'Collapse sidebar'}" title="${state.sidebarCollapsed?'Expand sidebar':'Collapse sidebar'}">${icon('panel',17)}</button></div></div><nav class="nav">${navLinks()}</nav><div class="sidebar-bottom"><div class="separator"></div><div class="side-project">Collections</div>${visible.map(c=>`<button class="collection-link" data-action="open-collection" data-collection="${esc(c)}"><span class="collection-dot" style="--collection-color:${collectionColor(c)}"></span>${esc(c)}<small>${meetings.filter(m=>m.collection===c).length}</small></button>`).join('')}${collections.length>4?`<button class="collection-link show-all" data-action="toggle-collections">${state.showAllCollections?'Show less':'Show all'} (${collections.length})</button>`:''}<button class="collection-link" data-action="new-collection">${icon('plus',14)}<span>New collection</span></button><button class="collection-link" data-action="manage-collections">${icon('settings',14)}<span>Manage collections</span></button><div class="version">INTERACTIVE CONCEPT · v0.6</div></div></aside>`;}
+function topbar(){let label=state.page==='details'?'Meetings':state.page[0].toUpperCase()+state.page.slice(1);return `<header class="topbar"><div class="crumb">Workspace <span class="dim">/</span> <strong>${label}</strong>${state.page==='details'?`<span class="dim">/</span><span>${esc(current().title)}</span>`:''}</div><div class="topbar-actions">${state.recording?`<span class="recording-chip"><span class="pulse"></span>Demo recording <span id="record-timer-top">${clock(state.recordSeconds)}</span><button data-action="stop-record">Stop</button></span>`:''}<span class="demo-pill"><span class="dot"></span>Interactive prototype</span><span class="kbd">${esc(settings.hotkeys.search.replace(/\+/g," "))}</span><button class="top-icon" data-action="help" title="About this demo">${icon('info',15)}</button></div></header>`;}
 function listRow(m){return `<div class="meeting-row"><div><button class="name" data-action="open-meeting" data-id="${esc(m.id)}">${esc(m.title)}</button><div class="meta">${fmtDate(m.date)} · ${fmtTime(m.date)} &nbsp; <span class="collection-dot" style="display:inline-block;vertical-align:middle;width:6px;height:6px;--collection-color:${collectionColor(m.collection)}"></span> ${esc(m.collection)}</div></div><div class="snippet">${esc(m.summary||'Imported file. Open it to listen.')}</div><div class="duration">${m.imported?'Imported':fmtDuration(m.duration)}</div><button class="row-menu" data-action="meeting-menu" data-id="${esc(m.id)}" aria-expanded="${state.menuMeeting===m.id}" aria-label="Meeting options" title="Meeting options">${icon('more')}</button>${state.menuMeeting===m.id?`<div class="menu-popover" role="menu"><button role="menuitem" data-action="rename" data-id="${esc(m.id)}">${icon('edit',13)} Rename</button><button role="menuitem" data-action="export" data-id="${esc(m.id)}">${icon('download',13)} Export</button><button role="menuitem" data-action="open-in-collection" data-id="${esc(m.id)}">${icon('folder',13)} Open collection</button><button role="menuitem" data-action="move-meeting" data-id="${esc(m.id)}">${icon('folder',13)} Move to collection</button><button class="danger" role="menuitem" data-action="delete-meeting" data-id="${esc(m.id)}">Delete meeting</button></div>`:''}</div>`;}
 function home(){const recent=[...meetings].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);return `<main class="page"><section class="home-hero"><div><p class="eyebrow">RECORD AND REVIEW</p>${state.recording?`<h1>Recording</h1><p class="page-sub">Prototype mode. The microphone is <strong>not</strong> captured. Stop to preview the review flow.</p><div class="recording-bar"><span class="pulse"></span>${meterHTML()}<span class="timer" id="record-timer">${clock(state.recordSeconds)}</span></div><div class="hero-buttons"><button class="btn large primary" data-action="stop-record">${icon('stop')} Stop demo recording</button></div>`:`<h1>Leave the meeting knowing<br>who does what.</h1><p class="page-sub">Record a call or import a file. Get a transcript with decisions and action items.</p><div class="hero-buttons"><button class="btn primary large" data-action="start-record">${icon('mic')} Start recording</button><button class="btn large" data-action="file-picker">${icon('upload')} Import audio or video</button></div>`}<div class="device-row"><span class="device"><span class="good"></span>Microphone ready <span class="dim">(demo)</span></span><span class="device"><span class="good"></span>System audio ready <span class="dim">(demo)</span></span></div></div><div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="Import audio or video. Drop a file here or press Enter to choose one."><div class="upload-symbol">${icon('upload',21)}</div><strong>Drop audio or video here</strong><small>or click to choose a file<br>Files stay in this browser session</small><div class="filetypes">MP3 &nbsp; WAV &nbsp; M4A &nbsp; MP4 &nbsp; MOV</div></div></section><div class="section-heading"><h2>Recent meetings</h2><button data-action="nav" data-page="meetings">View all ${icon('right',13)}</button></div><div class="meeting-list">${recent.map(listRow).join('')}</div><p style="margin-top:24px;font-size:11px;color:var(--dim)">Demo mode uses fictional meeting data. Your existing desktop recordings are not connected.</p></main>`;}
 function collectionsChips(){return `<div class="chips">${['All meetings',...collections].map(c=>`<button class="chip ${state.collection===c?'active':''}" data-action="select-collection" data-collection="${esc(c)}">${c==='All meetings'?'':`<span class="collection-dot" style="display:inline-block;width:7px;height:7px;margin-right:7px;--collection-color:${collectionColor(c)}"></span>`}${esc(c)}</button>`).join('')}</div>`;}
