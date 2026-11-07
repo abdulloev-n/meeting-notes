@@ -22,7 +22,7 @@ export default function App() {
   const [filterCollection,setFilterCollection]=useState('All meetings');const [showCollections,setShowCollections]=useState(true);
   const [collectionsManager,setCollectionsManager]=useState(false);const [dragging,setDragging]=useState(false);
   const [fromPage,setFromPage]=useState<Page>('meetings');
-  const [selectedId, setSelectedId] = useState<string | null>(null); const [tab, setTab] = useState<'overview' | 'transcript'>('overview');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState(false); const [error, setError] = useState(''); const [busy, setBusy] = useState(false);
   const [deleteMeeting, setDeleteMeeting] = useState<Meeting | null>(null); const [renameMeeting, setRenameMeeting] = useState<Meeting | null>(null); const [titleDraft, setTitleDraft] = useState('');
   const [now, setNow] = useState(Date.now());
@@ -32,7 +32,7 @@ export default function App() {
   setUiLanguage(snapshot.settings.language);
   const meetings = useMemo(() => [...snapshot.meetings].sort((a,b) => b.startedAt.localeCompare(a.startedAt)), [snapshot.meetings]);
   const selected = meetings.find(m => m.id === selectedId);
-  const openMeeting = (id: string) => { setFromPage(page);setSelectedId(id); setTab('overview'); setPage('details'); };
+  const openMeeting = (id: string) => { setFromPage(page);setSelectedId(id); setPage('details'); };
   const start = async () => { setBusy(true); setError(''); try { await api.start(); await refresh(); setPage('home'); } catch (e) { setError(errorText(e)); } finally { setBusy(false); } };
   const stop = async () => { setBusy(true); setError(''); try { const meeting = await api.stop(); await refresh(); openMeeting(meeting.id); } catch (e) { setError(errorText(e)); } finally { setBusy(false); } };
   const importMedia = async () => { setBusy(true); setError(''); try { const meeting = await api.importMedia(); if (meeting) { await refresh(); openMeeting(meeting.id); } } catch (e) { setError(errorText(e)); } finally { setBusy(false); } };
