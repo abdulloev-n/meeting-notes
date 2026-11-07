@@ -14,6 +14,7 @@ export const api = {
   toggleBookmark: (id:string,time:number) => invoke<void>('toggle_bookmark',{id,time}),
   renameSpeaker: (id:string,speaker:string,name:string) => invoke<void>('rename_speaker',{id,speaker,name}),
   analyze: (id:string,mode:string,force=false) => invoke<Analysis>('analyze_meeting',{id,mode,force}),
+  cachedAnalysis: (id:string) => invoke<Analysis|null>('cached_analysis',{id}),
   ask: (id:string,question:string) => invoke<AskResponse>('ask_meeting',{id,question}),
   translate: (id:string,language:string) => invoke<string>('translate_meeting',{id,language}),
   recordingBytes: (id:string) => invoke<ArrayBuffer>('recording_bytes',{id}),

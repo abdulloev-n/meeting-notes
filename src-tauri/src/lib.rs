@@ -147,6 +147,7 @@ async fn process_meeting(app: tauri::AppHandle,id: String) {
         }
         if let Err(e)=set_status(&app,&id,"TRANSCRIBING",None) { log::error!("Save status: {e}"); return; }
         match provider.transcribe_with_segments(std::path::Path::new(&m.audio_path),&state.ffmpeg_path,&m.transcription_model).await {
+            Ok((transcript,_)) if transcript.trim().is_empty() => { let _=set_status(&app,&id,"TRANSCRIPTION_FAILED",Some("No speech was detected. The recording and its title were kept.".into())); return; },
             Ok((transcript,segments)) => { m.transcript=Some(transcript); let _=extras::save_segments(&state.db_path,&id,&segments); m.status="TRANSCRIBED".into(); m.error=None; if let Err(e)=storage::save(&state.db_path,&m) { log::error!("Save transcript: {e}"); return; } updated(&app); },
             Err(error) => { log::error!("Transcription failed: {error}"); let _=set_status(&app,&id,"TRANSCRIPTION_FAILED",Some(error)); return; }
         }
@@ -154,7 +155,7 @@ async fn process_meeting(app: tauri::AppHandle,id: String) {
     if let Err(e)=set_status(&app,&id,"SUMMARIZING",None) { log::error!("Save status: {e}"); return; }
     let settings=match storage::load_settings(&state.db_path) { Ok(s)=>s,Err(e)=>{log::error!("Load settings: {e}");return;} };
     match provider.summarize(m.transcript.as_deref().unwrap_or(""),&m.summary_model,&settings.summary_language).await {
-        Ok(output) => { m.generated_title=output.title; m.summary=Some(output.summary); m.decisions=output.decisions; m.important_details=output.important_details;
+        Ok(output) => { if !output.title.trim().is_empty(){m.generated_title=output.title;} m.summary=Some(output.summary); m.decisions=output.decisions; m.important_details=output.important_details;
             m.action_items=output.action_items.into_iter().map(|a| ActionItem{id:Uuid::new_v4().to_string(),task:a.task,owner:a.owner,deadline:a.deadline,completed:false}).collect();
             m.status="READY".into(); m.error=None;
             if let Ok(current)=storage::get(&state.db_path,&id) { m.custom_title=current.custom_title; }
@@ -231,8 +232,7 @@ pub fn run(){
             std::fs::create_dir_all(&default_recordings)?;
             let ffmpeg=app.path().resource_dir()?.join("bin").join("ffmpeg.exe");
             let ffmpeg_path=if ffmpeg.exists(){ffmpeg}else{PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("bin").join("ffmpeg.exe")};
-            let mut settings=storage::load_settings(&db_path).map_err(std::io::Error::other)?;
-            if settings.transcription_model=="gpt-4o-mini-transcribe" {settings.transcription_model="gpt-4o-transcribe-diarize".into();storage::save_settings(&db_path,&settings).map_err(std::io::Error::other)?;}
+            let settings=storage::load_settings(&db_path).map_err(std::io::Error::other)?;
             for mut m in storage::list(&db_path).map_err(std::io::Error::other)? { if ["TRANSCRIBING","TRANSCRIBED","SUMMARIZING"].contains(&m.status.as_str()){
                 m.status=if m.transcript.is_some(){"SUMMARY_FAILED"}else{"TRANSCRIPTION_FAILED"}.into();m.error=Some("Processing was interrupted. Retry to continue.".into());storage::save(&db_path,&m).map_err(std::io::Error::other)?; } }
             app.manage(AppState{db_path,default_recordings,ffmpeg_path,recording:Mutex::new(None),starting:AtomicBool::new(false)});
@@ -256,6 +256,6 @@ pub fn run(){
         .invoke_handler(tauri::generate_handler![get_snapshot,start_recording,stop_recording,import_media,import_media_path,rename_meeting,toggle_action,delete_meeting,search_meetings,save_settings,save_api_key,retry_processing,choose_storage,open_storage,open_audio,
            extras::get_extras,extras::create_collection,extras::rename_collection,extras::merge_collection,
            extras::delete_collection,extras::assign_collection,extras::toggle_bookmark,extras::rename_speaker,
-           extras::analyze_meeting,extras::ask_meeting,extras::translate_meeting,extras::recording_bytes,extras::save_export])
+           extras::cached_analysis,extras::analyze_meeting,extras::ask_meeting,extras::translate_meeting,extras::recording_bytes,extras::save_export])
         .run(tauri::generate_context!()).expect("Meeting Notes could not start");
 }

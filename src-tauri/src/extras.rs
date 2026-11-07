@@ -56,7 +56,7 @@ pub(crate) struct ExtrasSnapshot{ collections:Vec<Collection>,meetings:BTreeMap<
 #[tauri::command]
 pub(crate) fn get_extras(state:tauri::State<'_,AppState>)->Result<ExtrasSnapshot,String>{
  let c=db(&state.db_path)?;
- let mut st=c.prepare("SELECT c.name,c.color,(SELECT COUNT(*) FROM meeting_extras e WHERE e.collection_name=c.name) FROM collections c ORDER BY CASE WHEN c.name='Unsorted' THEN 0 ELSE 1 END,c.rowid").map_err(|e|e.to_string())?;
+ let mut st=c.prepare("SELECT c.name,c.color,(SELECT COUNT(*) FROM meetings m LEFT JOIN meeting_extras e ON e.meeting_id=m.id WHERE COALESCE(e.collection_name,'Unsorted')=c.name) FROM collections c ORDER BY CASE WHEN c.name='Unsorted' THEN 0 ELSE 1 END,c.rowid").map_err(|e|e.to_string())?;
  let collections=st.query_map([],|r|Ok(Collection{name:r.get(0)?,color:r.get(1)?,count:r.get(2)?})).map_err(|e|e.to_string())?.collect::<Result<Vec<_>,_>>().map_err(|e|e.to_string())?;
  let mut stmt=c.prepare("SELECT meeting_id,collection_name,bookmarks_json,speaker_names_json,segments_json,detected_mode,translation FROM meeting_extras").map_err(|e|e.to_string())?;
  let rows=stmt.query_map([],|r|{
@@ -144,6 +144,16 @@ async fn chat(key:&str,model:&str,system:String,user:String)->Result<Value,Strin
 fn cache_key(path:&Path,id:&str,_mode:&str)->Result<(String,String,String),String>{
  let m=storage::get(path,id)?;let s=storage::load_settings(path)?;
  Ok((signature(m.transcript.as_deref().unwrap_or("")),s.summary_model,s.summary_language))
+}
+// Opening a meeting must not submit its transcript or write generated notes.
+#[tauri::command]
+pub(crate) fn cached_analysis(state:tauri::State<'_,AppState>,id:String)->Result<Option<Value>,String>{
+ let (sig,model,language)=cache_key(&state.db_path,&id,"Auto")?;
+ let c=db(&state.db_path)?;
+ let result:Option<String>=c.query_row(
+   "SELECT a.result_json FROM analysis_cache a JOIN meeting_extras e ON e.meeting_id=a.meeting_id AND e.detected_mode=a.mode WHERE a.meeting_id=?1 AND a.signature=?2 AND a.model=?3 AND a.language=?4",
+   params![id,sig,model,language],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
+ result.map(|v|serde_json::from_str(&v).map_err(|e|e.to_string())).transpose()
 }
 #[tauri::command]
 pub(crate) async fn analyze_meeting(app:tauri::AppHandle,id:String,mode:String,force:bool)->Result<Value,String>{

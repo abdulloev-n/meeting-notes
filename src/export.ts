@@ -7,7 +7,7 @@ function content(m:Meeting,a:Analysis|null,e?:MeetingExtra) {
  return {title:titleOf(m),date:formatDate(m.startedAt),duration:formatDuration(m.durationSeconds),
   summary:a?.summary||m.summary||'',
   decisions:a?.decisions||m.decisions,details:a?.details||m.importantDetails,
-  actions:a?.actionItems||m.actionItems.map(x=>({task:x.task,owner:x.owner,deadline:x.deadline})),
+  actions:m.actionItems.map(x=>({task:x.task,owner:x.owner,deadline:x.deadline})),
   transcript:e?.segments?.length?e.segments.map(s=>time(s.start)+' · '+(e.speakerNames[s.speaker]||s.speaker)+': '+s.text).join('\n\n'):(m.transcript||'')};
 }
 function markdown(m:Meeting,a:Analysis|null,e?:MeetingExtra){
@@ -25,7 +25,7 @@ function zipFiles(files:Record<string,string>){
   const nam=enc.encode(name),data=enc.encode(body),crc=crc32(data);
   const head=new Uint8Array([80,75,3,4,20,0,0,0,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nam.length),0,0,...nam]);
   local.push(head,data);
-  central.push(new Uint8Array([80,75,1,2,20,0,20,0,0,0,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nam.length),0,0,0,0,0,0,0,0,0,0,...u32(offset)]),nam);
+  central.push(new Uint8Array([80,75,1,2,20,0,20,0,0,0,0,0,0,0,0,0,...u32(crc),...u32(data.length),...u32(data.length),...u16(nam.length),0,0,0,0,0,0,0,0,0,0,0,0,...u32(offset)]),nam);
   offset+=head.length+data.length;
  }
  const centralSize=central.reduce((sum,a)=>sum+a.length,0);
@@ -54,7 +54,7 @@ export async function exportMeeting(m:Meeting,a:Analysis|null,e:MeetingExtra|und
    const wrap=document.createElement('article');wrap.id='meeting-print';wrap.className='print-document';
    const row=(heading:string,value:string)=>{const sec=document.createElement('section');const h=document.createElement('h2');h.textContent=heading;const p=document.createElement('p');p.style.whiteSpace='pre-wrap';p.textContent=value;sec.append(h,p);wrap.appendChild(sec)};
    const title=document.createElement('h1');title.textContent=c.title;const meta=document.createElement('p');meta.textContent=c.date+' · '+c.duration;wrap.append(title,meta);
-   row('Summary',c.summary);row('Key decisions',c.decisions.map(x=>'• '+x).join('\n'));row('Action items',c.actions.map(x=>'• '+x.task+(x.owner?' · '+x.owner:'')).join('\n'));row('Details',c.details.map(x=>'• '+x).join('\n'));row('Transcript',c.transcript);
+   row('Summary',c.summary);row('Key decisions',c.decisions.map(x=>'• '+x).join('\n'));row('Action items',c.actions.map(x=>'• '+x.task+(x.owner?' · '+x.owner:'')+(x.deadline?' · '+x.deadline:'')).join('\n'));row('Details',c.details.map(x=>'• '+x).join('\n'));row('Transcript',c.transcript);
    document.body.appendChild(wrap);window.addEventListener('afterprint',()=>wrap.remove(),{once:true});window.print();return;
  }
  const data=format==='md'?new Blob([markdown(m,a,e)],{type:'text/markdown;charset=utf-8'}):makeDocx(m,a,e);

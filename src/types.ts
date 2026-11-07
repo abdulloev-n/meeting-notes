@@ -11,7 +11,7 @@ export interface ExtrasSnapshot { collections: Collection[]; meetings: Record<st
 export interface Analysis { mode: string; title: string; summary: string; decisions: string[]; details: string[]; actionItems: {task: string;owner: string | null;deadline: string | null}[] }
 export interface AskResponse { answer: string; quote: string }
 export interface SearchResult { meetingId: string; title: string; startedAt: string; source: string; snippet: string }
-export const titleOf = (meeting: Meeting) => meeting.customTitle || meeting.generatedTitle;
+export const titleOf = (meeting: Meeting) => meeting.customTitle?.trim() || meeting.generatedTitle.trim() || 'Untitled meeting';
 export const formatDate = (value: string, options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', year: 'numeric' }) => new Intl.DateTimeFormat(uiLocale(), options).format(new Date(value));
 export const formatDuration = (seconds: number) => { const minutes = Math.round(seconds / 60); return uiLocale() === 'ru-RU' ? (minutes < 60 ? `${minutes} мин` : `${Math.floor(minutes / 60)} ч ${minutes % 60} мин`) : (minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`); };
 import { uiLocale } from './i18n';
