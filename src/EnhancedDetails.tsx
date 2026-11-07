@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState,type ReactNode} from 'react';
-import {ArrowLeft,Bookmark,Check,ChevronDown,Clipboard,FileDown,FolderOpen,Languages,MessageCircle,Pause,Pencil,Play,RefreshCw,Search} from 'lucide-react';
+import {ArrowLeft,Bookmark,Check,ChevronDown,Clipboard,FileDown,Languages,MessageCircle,Pause,Pencil,Play,RefreshCw,Search} from 'lucide-react';
 import {api} from './api';
 import {exportMeeting} from './export';
 import {formatDate,formatDuration,titleOf,type Analysis,type AskResponse,type Collection,type Meeting,type MeetingExtra} from './types';
@@ -56,7 +56,7 @@ export default function EnhancedDetails({meeting,extra,collections,onBack,rename
    {analysisError&&<p className="concept-warning">AI analysis is unavailable: {analysisError}. You can still read the original notes.</p>}
    <Card name={head} content={summary}><p>{summary||'Notes will appear after processing.'}</p></Card>
    <Card name={mode==='Lecture'?'Key takeaways':mode==='Interview'?'Candidate observations':'Key decisions'} content={decisions.join('\n')}>{decisions.length?<ul>{decisions.map((x,i)=><li key={i}>{x}</li>)}</ul>:<p>No decisions or key points found.</p>}</Card>
-   <Card name="Action items" content={actions.map(x=>x.task).join('\n')}>{actions.length?<div className="concept-actions">{actions.map((x,i)=><label key={i}><input type="checkbox" disabled={!('id'in x)} checked={'completed'in x?!!x.completed:false} onChange={e=>{'id'in x&&x.id&&toggle(x.id,e.target.checked)}}/><span>{x.task}</span>{x.owner&&<small>{x.owner}</small>}{x.deadline&&<small>{x.deadline}</small>}</label>)}</div>:<p>No action items found.</p>}</Card>
+   <Card name="Action items" content={actions.map(x=>x.task).join('\n')}>{actions.length?<div className="concept-actions">{actions.map((x,i)=><label key={i}><input type="checkbox" disabled={!('id'in x)} checked={'completed'in x?!!x.completed:false} onChange={e=>{'id'in x&&typeof x.id==='string'&&toggle(x.id,e.target.checked)}}/><span>{x.task}</span>{x.owner&&<small>{x.owner}</small>}{x.deadline&&<small>{x.deadline}</small>}</label>)}</div>:<p>No action items found.</p>}</Card>
    <Card name="Details" content={details.join('\n')}>{details.length?<ul>{details.map((x,i)=><li key={i}>{x}</li>)}</ul>:<p>No details found.</p>}</Card>
    <Card name="Recording"><div className="concept-record-link"><span>Local audio file · {formatDuration(meeting.durationSeconds)}</span><button className="secondary" onClick={()=>setTab('transcript')}>Listen in app</button></div></Card>
   </section>}
