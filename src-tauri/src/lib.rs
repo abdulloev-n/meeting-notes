@@ -21,6 +21,18 @@ fn key() -> Option<String> { credential().ok()?.get_password().ok() }
 fn root(state: &AppState, s: &Settings) -> PathBuf { if s.recording_path.is_empty() { state.default_recordings.clone() } else { PathBuf::from(&s.recording_path) } }
 fn updated(app: &tauri::AppHandle) { let _ = app.emit("meeting-updated", ()); }
 
+fn backup_previous_database(path: &std::path::Path) -> Result<(),String> {
+    if !path.exists() { return Ok(()); }
+    let backup=path.with_file_name("meetings.pre-0.3.0.db");
+    if backup.exists() { return Ok(()); }
+    // SQLite VACUUM INTO copies a consistent snapshot even if the original DB uses WAL.
+    let c=rusqlite::Connection::open(path).map_err(|e|e.to_string())?;
+    c.busy_timeout(std::time::Duration::from_secs(10)).map_err(|e|e.to_string())?;
+    c.execute("VACUUM INTO ?1", [backup.to_string_lossy().to_string()]).map_err(|e|format!("Could not create pre-update backup: {e}"))?;
+    Ok(())
+}
+
+
 #[tauri::command]
 fn get_snapshot(state: tauri::State<'_,AppState>) -> Result<Snapshot,String> {
     let settings = storage::load_settings(&state.db_path)?;
@@ -212,7 +224,7 @@ pub fn run(){
                 tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
                 tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Folder{path:data.join("logs"),file_name:None})
             ]).build())?;
-            let db_path=data.join("meetings.db");storage::migrate(&db_path).map_err(std::io::Error::other)?;
+            let db_path=data.join("meetings.db");backup_previous_database(&db_path).map_err(std::io::Error::other)?;storage::migrate(&db_path).map_err(std::io::Error::other)?;
             extras::migrate(&db_path).map_err(std::io::Error::other)?;
             let docs=app.path().document_dir().unwrap_or(data.clone());
             let default_recordings=std::env::var_os("MEETING_NOTES_RECORDINGS_DIR").map(PathBuf::from).unwrap_or_else(||docs.join("Meeting Notes").join("Recordings"));
