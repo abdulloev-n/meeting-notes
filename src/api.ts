@@ -1,9 +1,22 @@
 import { invoke } from '@tauri-apps/api/core';
-import type { Meeting, SearchResult, Settings, Snapshot } from './types';
+import type { Analysis, AskResponse, ExtrasSnapshot, Meeting, SearchResult, Settings, Snapshot } from './types';
 export const api = {
   snapshot: () => invoke<Snapshot>('get_snapshot'),
   start: () => invoke<void>('start_recording'), stop: () => invoke<Meeting>('stop_recording'),
   importMedia: () => invoke<Meeting | null>('import_media'),
+  importMediaPath: (path: string) => invoke<Meeting>('import_media_path', {path}),
+  extras: () => invoke<ExtrasSnapshot>('get_extras'),
+  newCollection: (name:string,color:string) => invoke<void>('create_collection',{name,color}),
+  renameCollection: (old:string,name:string) => invoke<void>('rename_collection',{old,name}),
+  mergeCollection: (source:string,target:string) => invoke<void>('merge_collection',{source,target}),
+  deleteCollection: (name:string) => invoke<void>('delete_collection',{name}),
+  assignCollection: (id:string,name:string) => invoke<void>('assign_collection',{id,name}),
+  toggleBookmark: (id:string,time:number) => invoke<void>('toggle_bookmark',{id,time}),
+  renameSpeaker: (id:string,speaker:string,name:string) => invoke<void>('rename_speaker',{id,speaker,name}),
+  analyze: (id:string,mode:string,force=false) => invoke<Analysis>('analyze_meeting',{id,mode,force}),
+  ask: (id:string,question:string) => invoke<AskResponse>('ask_meeting',{id,question}),
+  translate: (id:string,language:string) => invoke<string>('translate_meeting',{id,language}),
+  recordingBytes: (id:string) => invoke<ArrayBuffer>('recording_bytes',{id}),
   rename: (id: string, title: string) => invoke<void>('rename_meeting', { id, title }),
   remove: (id: string) => invoke<void>('delete_meeting', { id }),
   toggleAction: (id: string, completed: boolean) => invoke<void>('toggle_action', { id, completed }),
