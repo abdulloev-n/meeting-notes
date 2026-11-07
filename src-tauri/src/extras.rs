@@ -211,3 +211,16 @@ pub(crate) fn recording_bytes(state:tauri::State<'_,AppState>,id:String)->Result
  if meta.len()>100*1024*1024 {return Err("This recording is too large for in-app playback. Use Open recording instead.".into())}
  fs::read(path).map(Response::new).map_err(|e|e.to_string())
 }
+
+#[tauri::command]
+pub(crate) fn save_export(name:String,extension:String,bytes:Vec<u8>)->Result<Option<String>,String>{
+ let ext=extension.as_str();
+ if !["md","docx"].contains(&ext){return Err("Unsupported export format".into())}
+ let suggested: String=name.chars().filter(|c|!['/','\\',':','*','?','"','<','>','|'].contains(c)).take(85).collect();
+ let filename=format!("{}.{}",if suggested.trim().is_empty(){"Meeting Notes"}else{suggested.trim()},ext);
+ let chosen=rfd::FileDialog::new().add_filter(if ext=="md"{"Markdown"}else{"Word document"},&[ext]).set_file_name(&filename).save_file();
+ if let Some(path)=chosen{
+   fs::write(&path,bytes).map_err(|e|e.to_string())?;
+   Ok(Some(path.to_string_lossy().to_string()))
+ }else{Ok(None)}
+}
