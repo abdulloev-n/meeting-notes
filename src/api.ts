@@ -3,6 +3,7 @@ import type { Meeting, SearchResult, Settings, Snapshot } from './types';
 export const api = {
   snapshot: () => invoke<Snapshot>('get_snapshot'),
   start: () => invoke<void>('start_recording'), stop: () => invoke<Meeting>('stop_recording'),
+  importMedia: () => invoke<Meeting | null>('import_media'),
   rename: (id: string, title: string) => invoke<void>('rename_meeting', { id, title }),
   remove: (id: string) => invoke<void>('delete_meeting', { id }),
   toggleAction: (id: string, completed: boolean) => invoke<void>('toggle_action', { id, completed }),

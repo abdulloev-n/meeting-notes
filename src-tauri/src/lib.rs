@@ -22,9 +22,12 @@ fn updated(app: &tauri::AppHandle) { let _ = app.emit("meeting-updated", ()); }
 
 #[tauri::command]
 fn get_snapshot(state: tauri::State<'_,AppState>) -> Result<Snapshot,String> {
-    Ok(Snapshot { meetings:storage::list(&state.db_path)?, settings:storage::load_settings(&state.db_path)?, key_connected:key().is_some(),
+    let settings = storage::load_settings(&state.db_path)?;
+    Ok(Snapshot { meetings:storage::list(&state.db_path)?, key_connected:key().is_some(),
         recording_started_at:state.recording.lock().map_err(|e| e.to_string())?.as_ref().map(|s| s.started_at.to_rfc3339()),
-        microphones:audio::microphones(), outputs:audio::outputs() })
+        microphone_ready:audio::device_available(wasapi::Direction::Capture,&settings.microphone_id),
+        system_audio_ready:audio::device_available(wasapi::Direction::Render,&settings.system_audio_id),
+        microphones:audio::microphones(), outputs:audio::outputs(),settings })
 }
 
 async fn start_impl(app: tauri::AppHandle) -> Result<(),String> {
@@ -66,6 +69,38 @@ async fn stop_impl(app: tauri::AppHandle) -> Result<Meeting,String> {
 }
 #[tauri::command]
 async fn stop_recording(app: tauri::AppHandle) -> Result<Meeting,String> { stop_impl(app).await }
+
+#[tauri::command]
+async fn import_media(app: tauri::AppHandle) -> Result<Option<Meeting>,String> {
+    let selected = tauri::async_runtime::spawn_blocking(|| rfd::FileDialog::new()
+        .add_filter("Audio and video", &["mp3","m4a","wav","aac","flac","ogg","opus","wma","mp4","mov","mkv","webm","avi","m4v"])
+        .pick_file()).await.map_err(|e|e.to_string())?;
+    let Some(source) = selected else { return Ok(None); };
+    let state = app.state::<AppState>();
+    let settings = storage::load_settings(&state.db_path)?;
+    let started = Utc::now();
+    let directory = root(&state,&settings).join(format!("import_{}_{}",started.format("%Y-%m-%d_%H-%M-%S"),Uuid::new_v4()));
+    let ffmpeg = state.ffmpeg_path.clone();
+    let name = source.file_stem().and_then(|s|s.to_str()).unwrap_or("Imported meeting").to_string();
+    let destination = directory.join("audio.m4a");
+    let converted = destination.clone();
+    tauri::async_runtime::spawn_blocking(move || -> Result<(),String> {
+        std::fs::create_dir_all(&directory).map_err(|e|e.to_string())?;
+        let output = std::process::Command::new(ffmpeg).args(["-nostdin","-y","-loglevel","error","-i"])
+            .arg(&source).args(["-map","0:a:0","-vn","-c:a","aac","-b:a","128k"])
+            .arg(&destination).output().map_err(|e|format!("Could not convert media: {e}"))?;
+        if !output.status.success() { return Err(format!("Could not extract audio from this file: {}",String::from_utf8_lossy(&output.stderr))); }
+        Ok(())
+    }).await.map_err(|e|e.to_string())??;
+    let meeting = Meeting { id:Uuid::new_v4().to_string(),generated_title:name,custom_title:None,
+        created_at:started.to_rfc3339(),started_at:started.to_rfc3339(),ended_at:started.to_rfc3339(),duration_seconds:0,
+        audio_path:converted.to_string_lossy().into_owned(),
+        transcript:None,summary:None,decisions:vec![],action_items:vec![],important_details:vec![],
+        status:"RECORDED".into(),error:None,transcription_model:settings.transcription_model,summary_model:settings.summary_model };
+    storage::save(&state.db_path,&meeting)?; updated(&app);
+    let id = meeting.id.clone();tauri::async_runtime::spawn(async move {process_meeting(app,id).await;});
+    Ok(Some(meeting))
+}
 
 fn set_status(app: &tauri::AppHandle,id: &str,status: &str,error: Option<String>) -> Result<Meeting,String> {
     let state = app.state::<AppState>(); let mut m = storage::get(&state.db_path,id)?; m.status=status.into(); m.error=error;
@@ -190,6 +225,6 @@ pub fn run(){
             Ok(())
         })
         .on_window_event(|window,event|{if let tauri::WindowEvent::CloseRequested{api,..}=event{let state=window.state::<AppState>();let active=state.recording.lock().map(|g|g.is_some()).unwrap_or(false);let minimize=storage::load_settings(&state.db_path).map(|s|s.minimize_to_tray).unwrap_or(true);if active||minimize{api.prevent_close();let _=window.hide();}}})
-        .invoke_handler(tauri::generate_handler![get_snapshot,start_recording,stop_recording,rename_meeting,toggle_action,delete_meeting,search_meetings,save_settings,save_api_key,retry_processing,choose_storage,open_storage,open_audio])
+        .invoke_handler(tauri::generate_handler![get_snapshot,start_recording,stop_recording,import_media,rename_meeting,toggle_action,delete_meeting,search_meetings,save_settings,save_api_key,retry_processing,choose_storage,open_storage,open_audio])
         .run(tauri::generate_context!()).expect("Meeting Notes could not start");
 }

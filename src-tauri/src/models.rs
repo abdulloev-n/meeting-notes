@@ -82,6 +82,8 @@ pub struct Snapshot {
     pub recording_started_at: Option<String>,
     pub microphones: Vec<Device>,
     pub outputs: Vec<Device>,
+    pub microphone_ready: bool,
+    pub system_audio_ready: bool,
 }
 
 #[derive(Serialize)]

@@ -29,6 +29,13 @@ fn enumerate(direction: Direction) -> Result<Vec<Device>, String> {
 pub fn microphones() -> Vec<Device> { enumerate(Direction::Capture).unwrap_or_default() }
 pub fn outputs() -> Vec<Device> { enumerate(Direction::Render).unwrap_or_default() }
 
+pub fn device_available(direction: Direction, selected_id: &str) -> bool {
+    if wasapi::initialize_mta().ok().is_err() { return false; }
+    let Ok(enumerator) = DeviceEnumerator::new() else { return false; };
+    let result = if selected_id.is_empty() { enumerator.get_default_device(&direction) } else { enumerator.get_device(selected_id) };
+    result.and_then(|device| device.get_iaudioclient()).is_ok()
+}
+
 fn capture(direction: Direction, device_id: String, path: PathBuf, stop: Arc<AtomicBool>, ready: mpsc::Sender<Result<(), String>>) -> Result<(), String> {
     let outcome = (|| -> Result<(), String> {
         wasapi::initialize_mta().ok().map_err(|e| e.to_string())?;

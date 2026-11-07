@@ -12,6 +12,7 @@ const russian: Record<string, string> = {
   'Record your meetings, transcribe them, and create useful notes': 'Записывайте встречи, получайте расшифровку и заметки',
   'all locally on your device.': 'с сохранением записей на вашем устройстве.',
   'Start recording': 'Начать запись', 'Microphone connected': 'Микрофон подключён',
+  'Import audio or video': 'Импорт аудио или видео',
   'Microphone unavailable': 'Микрофон недоступен', 'System audio ready': 'Системный звук готов',
   'System audio unavailable': 'Системный звук недоступен', 'Recent meetings': 'Недавние встречи',
   'View all': 'Все встречи', 'Your recordings will appear here.': 'Здесь появятся ваши записи.',
