@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap,path::Path,fs};
 use rusqlite::{params, Connection, OptionalExtension};
-use serde::{Serialize,Deserialize};
+use serde::Serialize;
 use serde_json::{json,Value};
 use tauri::{Manager,ipc::Response};
 use crate::{AppState,storage};
@@ -141,7 +141,7 @@ async fn chat(key:&str,model:&str,system:String,user:String)->Result<Value,Strin
  let status=response.status();let data:Value=response.json().await.map_err(|e|e.to_string())?;
  if !status.is_success(){return Err(format!("AI HTTP {}: {}",status.as_u16(),api_error(&data)))}parse_response(&data)
 }
-fn cache_key(path:&Path,id:&str,mode:&str)->Result<(String,String,String),String>{
+fn cache_key(path:&Path,id:&str,_mode:&str)->Result<(String,String,String),String>{
  let m=storage::get(path,id)?;let s=storage::load_settings(path)?;
  Ok((signature(m.transcript.as_deref().unwrap_or("")),s.summary_model,s.summary_language))
 }
@@ -195,7 +195,7 @@ pub(crate) async fn translate_meeting(app:tauri::AppHandle,id:String,language:St
  let transcript=m.transcript.ok_or("Transcript is not ready")?;let c=db(&path)?;ensure(&c,&id)?;
  let key=format!("translation_{language}");
  let cached:Option<String>=c.query_row("SELECT translation FROM meeting_extras WHERE meeting_id=?1",[&id],|r|r.get(0)).optional().map_err(|e|e.to_string())?.flatten();
- if let Some(v)=cached{if let Ok(v)=serde_json::from_str::<Value>(&v){if let Some(t)=v.get(&key).and_then(Value::as_str){return Ok(t.to_string())}}}
+ if let Some(v)=cached.as_ref(){if let Ok(v)=serde_json::from_str::<Value>(v){if let Some(t)=v.get(&key).and_then(Value::as_str){return Ok(t.to_string())}}}
  let settings=storage::load_settings(&path)?;let secret=crate::key().ok_or("Add your OpenAI API key in Settings")?;
  let result=chat(&secret,&settings.summary_model,format!("Translate the entire provided transcript to {language}. Preserve paragraph breaks and meaning. Do not invent content. Respond JSON with exactly a field 'translation' containing translated text."),transcript).await?;
  let translation=result.get("translation").and_then(Value::as_str).ok_or("Translation response missing text")?.to_string();
