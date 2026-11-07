@@ -167,7 +167,7 @@ pub(crate) async fn analyze_meeting(app:tauri::AppHandle,id:String,mode:String,f
  let system=format!("Analyze ONLY the provided transcript. {chosen} Write in {language} (or use the source language if Auto). Return a JSON object with exactly these keys: mode (Meeting, Lecture, Interview, Video, or Custom), title, summary (paragraph), decisions (array of important decisions or key points), details (array of key facts), actionItems (array of objects with task, owner, deadline; each may be null). Do not invent facts, people or tasks. A lecture should produce lecture notes and learning takeaways, an interview candidate responses and observations, a video key takeaways, and a meeting decisions and actions. Return only JSON.");
  let excerpt=if transcript.chars().count()>56000 {format!("{}\n[Long transcript shortened]\n{}",transcript.chars().take(47000).collect::<String>(),transcript.chars().rev().take(9000).collect::<String>().chars().rev().collect::<String>())}else{transcript};
  let mut result=chat(&secret,&model,system,excerpt).await?;
- let actual=if mode=="Auto"{result.get("mode").and_then(Value::as_str).unwrap_or("Meeting").to_string()}else{mode};
+ let actual=if mode=="Auto"{result.get("mode").and_then(Value::as_str).unwrap_or("Meeting").to_string()}else{mode.clone()};
  let actual=if ["Meeting","Lecture","Interview","Video","Custom"].contains(&actual.as_str()){actual}else{"Meeting".into()};
  result["mode"]=json!(actual);
  let c=db(&path)?;ensure(&c,&id)?;
@@ -200,7 +200,7 @@ pub(crate) async fn translate_meeting(app:tauri::AppHandle,id:String,language:St
  let result=chat(&secret,&settings.summary_model,format!("Translate the entire provided transcript to {language}. Preserve paragraph breaks and meaning. Do not invent content. Respond JSON with exactly a field 'translation' containing translated text."),transcript).await?;
  let translation=result.get("translation").and_then(Value::as_str).ok_or("Translation response missing text")?.to_string();
  let mut map=cached.as_deref().and_then(|v|serde_json::from_str::<Value>(v).ok()).unwrap_or(json!({}));
- map[&key]=json!(translation);
+ map[key.as_str()]=json!(translation);
  c.execute("UPDATE meeting_extras SET translation=?1 WHERE meeting_id=?2",params![map.to_string(),id]).map_err(|e|e.to_string())?;
  Ok(translation)
 }
