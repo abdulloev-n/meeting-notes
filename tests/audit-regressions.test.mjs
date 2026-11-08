@@ -26,6 +26,13 @@ test('additive metadata migrations preserve old notes, task IDs, completion and 
  db.exec(migration(extras));db.exec(migration(extras));
  assert.deepEqual(db.prepare('SELECT * FROM meetings').all(),before.meetings);assert.deepEqual(db.prepare('SELECT * FROM action_items').all(),before.tasks);assert.deepEqual(db.prepare('SELECT * FROM settings').all(),before.settings);assert.equal(db.prepare('PRAGMA integrity_check').get().integrity_check,'ok');db.close();
 });
+test('startup does not recreate a default collection the user deleted',()=>{
+ const db=fixture();db.exec(migration(extras));
+ db.prepare("DELETE FROM collections WHERE name='Personal'").run();
+ const before=db.prepare('SELECT * FROM collections').all();
+ db.exec(migration(extras));
+ assert.deepEqual(db.prepare('SELECT * FROM collections').all(),before);db.close();
+});
 test('read-only cache query returns a miss without creating metadata; stale signatures miss',()=>{
  const db=fixture();db.exec(migration(extras));const source=extras.slice(extras.indexOf('fn cached_analysis('));
  const query=source.match(/"(SELECT a.result_json[^"]+)"/)[1];

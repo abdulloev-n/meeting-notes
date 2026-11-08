@@ -31,7 +31,7 @@ pub(crate) fn migrate(path:&Path)->Result<(),String>{
     PRIMARY KEY(meeting_id,mode,signature,model,language)
   );
   INSERT OR IGNORE INTO collections(name,color) VALUES('Unsorted','#9CA3AF');
-  INSERT OR IGNORE INTO collections(name,color) VALUES('Personal','#91B9F7');
+  INSERT OR IGNORE INTO collections(name,color) SELECT 'Personal','#91B9F7' WHERE NOT EXISTS(SELECT 1 FROM schema_migrations WHERE version=2);
   INSERT OR IGNORE INTO schema_migrations(version) VALUES(2);"
  ).map_err(|e|e.to_string())
 }
