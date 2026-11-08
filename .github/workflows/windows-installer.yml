@@ -22,8 +22,10 @@ jobs:
         run: npm ci
       - name: Check data preservation regressions
         run: node --test tests/audit-regressions.test.mjs tests/export-regression.test.mjs
+      - name: Prepare interface and bundled audio tools
+        run: npm run build
       - name: Check native collection and analysis regressions
-        run: cargo test --manifest-path src-tauri/Cargo.toml interaction_tests
+        run: cargo test --release --manifest-path src-tauri/Cargo.toml interaction_tests
       - name: Build NSIS installer
         run: npx tauri build --bundles nsis
       - name: Upload installer
