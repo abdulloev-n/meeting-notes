@@ -255,7 +255,7 @@ pub fn run(){
         .on_window_event(|window,event|{if let tauri::WindowEvent::CloseRequested{api,..}=event{let state=window.state::<AppState>();let active=state.recording.lock().map(|g|g.is_some()).unwrap_or(false);let minimize=storage::load_settings(&state.db_path).map(|s|s.minimize_to_tray).unwrap_or(true);if active||minimize{api.prevent_close();let _=window.hide();}}})
         .invoke_handler(tauri::generate_handler![get_snapshot,start_recording,stop_recording,import_media,import_media_path,rename_meeting,toggle_action,delete_meeting,search_meetings,save_settings,save_api_key,retry_processing,choose_storage,open_storage,open_audio,
            extras::get_extras,extras::create_collection,extras::rename_collection,extras::merge_collection,
-           extras::delete_collection,extras::assign_collection,extras::toggle_bookmark,extras::rename_speaker,
+           extras::delete_collection,extras::assign_collection,extras::assign_collections,extras::toggle_bookmark,extras::rename_speaker,
            extras::cached_analysis,extras::analyze_meeting,extras::ask_meeting,extras::translate_meeting,extras::recording_bytes,extras::save_export])
         .run(tauri::generate_context!()).expect("Meeting Notes could not start");
 }

@@ -13,7 +13,7 @@ const paragraphs=(text:string)=>text.split(/\n\s*\n|\n/).map(x=>x.trim()).filter
 function Card({name,content,children}:{name:string;content?:string;children:ReactNode}){return <section className="concept-card"><header><h2>{name}</h2>{content!==undefined&&<button onClick={()=>navigator.clipboard.writeText(content)} aria-label={'Copy '+name}><Clipboard size={16}/> Copy</button>}</header>{children}</section>}
 export default function EnhancedDetails({meeting,extra,collections,onBack,rename,retry,toggle,onRefresh,onError}:Props){
  const [tab,setTab]=useState<'overview'|'transcript'|'ai'>('overview');
- const [mode,setMode]=useState('Auto');const [analysis,setAnalysis]=useState<Analysis|null>(null);
+ const [mode,setMode]=useState(extra?.detectedMode||'Auto');const [analysis,setAnalysis]=useState<Analysis|null>(null);
  const [loading,setLoading]=useState(false);const [analysisError,setAnalysisError]=useState('');
  const [exportMenu,setExportMenu]=useState(false);
  const [query,setQuery]=useState('');const [onlyBookmarks,setOnlyBookmarks]=useState(false);
@@ -32,10 +32,10 @@ export default function EnhancedDetails({meeting,extra,collections,onBack,rename
  const speakers=[...new Set(segments.map(x=>x.speaker))];
  const displaySpeaker=(id:string)=>extra?.speakerNames?.[id]||speakerLabel(id);
  const issue=(e:unknown)=>onError(e instanceof Error?e.message:String(e));
- useEffect(()=>{setTab('overview');setMode('Auto');setAnalysis(null);setAnalysisError('');setTranslated(false);setTranslation('');setMessages([]);setQuestion('');setAudioTime(0);pendingSeek.current=null;setPlaying(false);setQuery('');setOnlyBookmarks(false);setSpeakerEdit(null);},[meeting.id]);
- useEffect(()=>{if(!source)return;let active=true;setLoading(true);api.cachedAnalysis(meeting.id).then(r=>{if(active){setAnalysis(r);setMode(r?.mode||'Auto');}}).catch(e=>{if(active)setAnalysisError(String(e))}).finally(()=>{if(active)setLoading(false)});return()=>{active=false};},[meeting.id,!!meeting.transcript]);
+ useEffect(()=>{setTab('overview');setMode(extra?.detectedMode||'Auto');setAnalysis(null);setAnalysisError('');setTranslated(false);setTranslation('');setMessages([]);setQuestion('');setAudioTime(0);pendingSeek.current=null;setPlaying(false);setQuery('');setOnlyBookmarks(false);setSpeakerEdit(null);},[meeting.id]);
+ useEffect(()=>{if(!source)return;let active=true;setLoading(true);api.cachedAnalysis(meeting.id).then(r=>{if(active){setAnalysis(r);setMode(r?.mode||extra?.detectedMode||'Auto');}}).catch(e=>{if(active)setAnalysisError(String(e))}).finally(()=>{if(active)setLoading(false)});return()=>{active=false};},[meeting.id,!!meeting.transcript]);
  useEffect(()=>{if(tab!=='transcript')return;let active=true;let url='';api.recordingBytes(meeting.id).then(buffer=>{if(!active)return;const type=meeting.audioPath.toLowerCase().endsWith('.wav')?'audio/wav':'audio/mp4';url=URL.createObjectURL(new Blob([buffer],{type}));setAudioUrl(url);setAudioError('');}).catch(e=>{if(active)setAudioError(String(e))});return()=>{active=false;if(url)URL.revokeObjectURL(url);setAudioUrl('');};},[meeting.id,meeting.audioPath,tab]);
- async function loadMode(next:string,force=false){setMode(next);setLoading(true);setAnalysisError('');try{const r=await api.analyze(meeting.id,next,force);setAnalysis(r);setMode(r.mode);await onRefresh()}catch(e){setAnalysisError(String(e))}finally{setLoading(false)}}
+ async function loadMode(next:string,force=false){const previous=mode;setMode(next);setLoading(true);setAnalysisError('');try{const r=await api.analyze(meeting.id,next,force);setAnalysis(r);setMode(r.mode);await onRefresh()}catch(e){setMode(previous);setAnalysisError(String(e))}finally{setLoading(false)}}
  async function translate(){if(translated){setTranslated(false);return}setTranslationLoading(true);try{setTranslation(await api.translate(meeting.id,'Russian'));setTranslated(true);await onRefresh()}catch(e){issue(e)}finally{setTranslationLoading(false)}}
  async function renameSpeaker(){if(!speakerEdit||!speakerDraft.trim())return;try{await api.renameSpeaker(meeting.id,speakerEdit,speakerDraft.trim());setSpeakerEdit(null);await onRefresh()}catch(e){issue(e)}}
  async function bookmark(start:number){try{await api.toggleBookmark(meeting.id,start);await onRefresh()}catch(e){issue(e)}}
@@ -57,7 +57,7 @@ export default function EnhancedDetails({meeting,extra,collections,onBack,rename
    {analysisError&&<p className="concept-warning">AI analysis is unavailable: {analysisError}. You can still read the original notes.</p>}
    <Card name={head} content={summary}><p>{summary||'Notes will appear after processing.'}</p></Card>
    <Card name={mode==='Lecture'?'Key takeaways':mode==='Interview'?'Candidate observations':'Key decisions'} content={decisions.join('\n')}>{decisions.length?<ul>{decisions.map((x,i)=><li key={i}>{x}</li>)}</ul>:<p>No decisions or key points found.</p>}</Card>
-   <Card name="Action items" content={actions.map(x=>x.task).join('\n')}>{actions.length?<div className="concept-actions">{actions.map((x,i)=><label key={i}><input type="checkbox" disabled={!('id'in x)} checked={'completed'in x?!!x.completed:false} onChange={e=>{'id'in x&&typeof x.id==='string'&&toggle(x.id,e.target.checked)}}/><span>{x.task}</span>{x.owner&&<small>{x.owner}</small>}{x.deadline&&<small>{x.deadline}</small>}</label>)}</div>:<p>No action items found.</p>}</Card>
+   <Card name="Action items" content={actions.map(x=>x.task).join('\n')}>{actions.length?<div className="concept-actions">{actions.map(x=><label key={x.id}><input type="checkbox" disabled={!('id'in x)} checked={'completed'in x?!!x.completed:false} onChange={e=>{'id'in x&&typeof x.id==='string'&&toggle(x.id,e.target.checked)}}/><span className={x.completed?'done':''}>{x.task}</span>{x.owner&&<small>{x.owner}</small>}{x.deadline&&<small>{x.deadline}</small>}</label>)}</div>:<p>No action items found.</p>}</Card>
    <Card name="Details" content={details.join('\n')}>{details.length?<ul>{details.map((x,i)=><li key={i}>{x}</li>)}</ul>:<p>No details found.</p>}</Card>
    <Card name="Recording"><div className="concept-record-link"><span>Local audio file · {formatDuration(meeting.durationSeconds)}</span><button className="secondary" onClick={()=>setTab('transcript')}>Listen in app</button></div></Card>
   </section>}

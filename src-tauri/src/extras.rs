@@ -168,8 +168,7 @@ pub(crate) async fn analyze_meeting(app:tauri::AppHandle,id:String,mode:String,f
      let previous:Option<String>=c.query_row("SELECT detected_mode FROM meeting_extras WHERE meeting_id=?1",[&id],|r|r.get(0)).optional().map_err(|e|e.to_string())?.flatten();
      if let Some(detected)=previous {let result:Option<String>=c.query_row("SELECT result_json FROM analysis_cache WHERE meeting_id=?1 AND mode=?2 AND signature=?3 AND model=?4 AND language=?5",params![id,detected,sig,model,language],|r|r.get(0)).optional().map_err(|e|e.to_string())?;if let Some(r)=result{return serde_json::from_str(&r).map_err(|e|e.to_string())}}
    }else{
-    let result:Option<String>=c.query_row("SELECT result_json FROM analysis_cache WHERE meeting_id=?1 AND mode=?2 AND signature=?3 AND model=?4 AND language=?5",params![id,mode,sig,model,language],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
-    if let Some(result)=result{return serde_json::from_str(&result).map_err(|e|e.to_string())}
+    if let Some(result)=select_cached_analysis(&c,&id,&mode,&sig,&model,&language)?{return Ok(result)}
    }
  }
  let secret=crate::key().ok_or("Add your OpenAI API key in Settings")?;
@@ -182,7 +181,7 @@ pub(crate) async fn analyze_meeting(app:tauri::AppHandle,id:String,mode:String,f
  result["mode"]=json!(actual);
  let c=db(&path)?;ensure(&c,&id)?;
  c.execute("INSERT INTO analysis_cache(meeting_id,mode,signature,model,language,result_json) VALUES(?1,?2,?3,?4,?5,?6) ON CONFLICT(meeting_id,mode,signature,model,language) DO UPDATE SET result_json=excluded.result_json",params![id,actual,sig,model,language,result.to_string()]).map_err(|e|e.to_string())?;
- if mode=="Auto" {c.execute("UPDATE meeting_extras SET detected_mode=?1 WHERE meeting_id=?2",params![actual,id]).map_err(|e|e.to_string())?;}
+ c.execute("UPDATE meeting_extras SET detected_mode=?1 WHERE meeting_id=?2",params![actual,id]).map_err(|e|e.to_string())?;
  Ok(result)
 }
 #[tauri::command]
@@ -233,4 +232,55 @@ pub(crate) fn save_export(name:String,extension:String,bytes:Vec<u8>)->Result<Op
    fs::write(&path,bytes).map_err(|e|e.to_string())?;
    Ok(Some(path.to_string_lossy().to_string()))
  }else{Ok(None)}
+}
+// One transaction prevents partially moving a selected group.
+#[tauri::command]
+pub(crate) fn assign_collections(state:tauri::State<'_,AppState>,ids:Vec<String>,name:String)->Result<(),String>{
+ let mut c=db(&state.db_path)?;assign_many(&mut c,&ids,&name)
+}
+fn assign_many(c:&mut Connection,ids:&[String],name:&str)->Result<(),String>{
+ let tx=c.transaction().map_err(|e|e.to_string())?;
+ let exists:i64=tx.query_row("SELECT COUNT(*) FROM collections WHERE name=?1",[name],|r|r.get(0)).map_err(|e|e.to_string())?;
+ if exists==0{return Err("Collection not found".into())}
+ for id in ids {
+  let exists:i64=tx.query_row("SELECT COUNT(*) FROM meetings WHERE id=?1",[id],|r|r.get(0)).map_err(|e|e.to_string())?;
+  if exists==0{return Err("Meeting not found".into())}
+  ensure(&tx,id)?;
+  tx.execute("UPDATE meeting_extras SET collection_name=?1 WHERE meeting_id=?2",params![name,id]).map_err(|e|e.to_string())?;
+ }
+ tx.commit().map_err(|e|e.to_string())
+}
+// Selecting a saved result must also persist the chosen type, without calling AI.
+fn select_cached_analysis(c:&Connection,id:&str,mode:&str,sig:&str,model:&str,language:&str)->Result<Option<Value>,String>{
+ let result:Option<String>=c.query_row("SELECT result_json FROM analysis_cache WHERE meeting_id=?1 AND mode=?2 AND signature=?3 AND model=?4 AND language=?5",params![id,mode,sig,model,language],|r|r.get(0)).optional().map_err(|e|e.to_string())?;
+ if let Some(result)=result{let parsed:Value=serde_json::from_str(&result).map_err(|e|e.to_string())?;ensure(c,id)?;c.execute("UPDATE meeting_extras SET detected_mode=?1 WHERE meeting_id=?2",params![mode,id]).map_err(|e|e.to_string())?;return Ok(Some(parsed))}
+ Ok(None)
+}
+
+
+#[cfg(test)]
+mod interaction_tests {
+ use super::*;
+ fn fixture()->Connection{
+  let c=Connection::open_in_memory().unwrap();
+  c.execute_batch("PRAGMA foreign_keys=ON;CREATE TABLE meetings(id TEXT PRIMARY KEY);INSERT INTO meetings VALUES('one'),('two');CREATE TABLE collections(name TEXT PRIMARY KEY);INSERT INTO collections VALUES('Unsorted'),('Personal');CREATE TABLE meeting_extras(meeting_id TEXT PRIMARY KEY REFERENCES meetings(id),collection_name TEXT DEFAULT 'Unsorted',detected_mode TEXT,bookmarks_json TEXT DEFAULT '[]');CREATE TABLE analysis_cache(meeting_id TEXT,mode TEXT,signature TEXT,model TEXT,language TEXT,result_json TEXT);INSERT INTO meeting_extras(meeting_id,bookmarks_json) VALUES('one','[12]');").unwrap();c
+ }
+ #[test]
+ fn bulk_assignment_is_atomic_and_preserves_other_metadata(){
+  let mut c=fixture();
+  assert!(assign_many(&mut c,&["one".into(),"missing".into()],"Personal").is_err());
+  assert_eq!(c.query_row("SELECT collection_name FROM meeting_extras WHERE meeting_id='one'",[],|r|r.get::<_,String>(0)).unwrap(),"Unsorted");
+  assign_many(&mut c,&["one".into(),"two".into()],"Personal").unwrap();
+  assert_eq!(c.query_row("SELECT COUNT(*) FROM meeting_extras WHERE collection_name='Personal'",[],|r|r.get::<_,i64>(0)).unwrap(),2);
+  assert_eq!(c.query_row("SELECT bookmarks_json FROM meeting_extras WHERE meeting_id='one'",[],|r|r.get::<_,String>(0)).unwrap(),"[12]");
+  assert!(assign_many(&mut c,&["one".into()],"missing").is_err());
+ }
+ #[test]
+ fn cached_type_selection_persists_and_stale_cache_does_not_override_it(){
+  let c=fixture();for mode in ["Lecture","Interview"]{c.execute("INSERT INTO analysis_cache VALUES('one',?1,'sig','model','English',?2)",params![mode,json!({"mode":mode,"summary":mode}).to_string()]).unwrap();}
+  for mode in ["Lecture","Interview","Lecture"]{let result=select_cached_analysis(&c,"one",mode,"sig","model","English").unwrap().unwrap();assert_eq!(result["mode"],mode);assert_eq!(c.query_row("SELECT detected_mode FROM meeting_extras WHERE meeting_id='one'",[],|r|r.get::<_,String>(0)).unwrap(),mode);}
+  assert!(select_cached_analysis(&c,"one","Interview","new-sig","model","English").unwrap().is_none());
+  assert_eq!(c.query_row("SELECT detected_mode FROM meeting_extras WHERE meeting_id='one'",[],|r|r.get::<_,String>(0)).unwrap(),"Lecture");
+  assert_eq!(c.query_row("SELECT COUNT(*) FROM analysis_cache",[],|r|r.get::<_,i64>(0)).unwrap(),2);
+ }
 }

@@ -10,6 +10,7 @@ export const api = {
   renameCollection: (old:string,name:string) => invoke<void>('rename_collection',{old,name}),
   mergeCollection: (source:string,target:string) => invoke<void>('merge_collection',{source,target}),
   deleteCollection: (name:string) => invoke<void>('delete_collection',{name}),
+  assignCollections: (ids:string[],name:string) => invoke<void>('assign_collections',{ids,name}),
   assignCollection: (id:string,name:string) => invoke<void>('assign_collection',{id,name}),
   toggleBookmark: (id:string,time:number) => invoke<void>('toggle_bookmark',{id,time}),
   renameSpeaker: (id:string,speaker:string,name:string) => invoke<void>('rename_speaker',{id,speaker,name}),
